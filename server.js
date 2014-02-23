@@ -17,7 +17,7 @@ if (!exists) {
     db.serialize(function () {
         db.run('CREATE TABLE "users" ("user_id" blob PRIMARY KEY  NOT NULL, "name" VARCHAR(50) NOT NULL, "email" VARCHAR(90), password blob NOT NULL, "created_at" TIMESTAMP DEFAULT (CURRENT_TIMESTAMP));');
         db.run('CREATE TABLE "wars" ("war_id" blob PRIMARY KEY NOT NULL, "charity_foundation" VARCHAR(70) NOT NULL, "user_id" blob NOT NULL, "created_at" TIMESTAMP DEFAULT (CURRENT_TIMESTAMP));');
-        db.run('CREATE TABLE "team" ("team_id" blob PRIMARY KEY NOT NULL, "team name" blob NOT NULL, "war_id" blob PRIMARY KEY  NOT NULL, "created_at" TIMESTAMP DEFAULT (CURRENT_TIMESTAMP));');
+        db.run('CREATE TABLE "team" ("team_id" blob PRIMARY KEY NOT NULL, "team_name" blob NOT NULL, "war_id" blob PRIMARY KEY  NOT NULL, "created_at" TIMESTAMP DEFAULT (CURRENT_TIMESTAMP));');
         db.run('CREATE TABLE "donations" ("donation_id" integer PRIMARY KEY  NOT NULL, "war_id" blob NOT NULL, "team_id" blob NOT NULL, "user_id" blob NOT NULL, "amount" real NOT NULL, "created_at" TIMESTAMP DEFAULT (CURRENT_TIMESTAMP));');
     });
 }
@@ -71,10 +71,89 @@ var comparePassword = function (password, userPassword, callback) {
 captifeye.listen(9001);
 //Set Up End///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
-//RoutingStart///////////////////////////////////////////////////////////////////////////
+//Routing Start//////////////////////////////////////////////////////////////////////////
 //--------------------------------------------------------------------/////-landing page
 captifeye.get('/', function (req, res){
     res.render('home', {});
+});
+captifeye.get('/war/:war_id', function (req, res){
+    res.render('home', {});
+});
+captifeye.get('/war/:war_id/:team_name', function (req, res){
+    db.get('SELECT donations.*, users.* FROM donations INNER JOIN users ON donations.user_id=users.user_id WHERE donations.war_id="'+req.params.war_id+'" AND donations.team_name="'+req.params.team_name+'";', function(donErr, donations){
+        if(err || donations==undefined){
+            res.render('error', {
+                errorNumber: 404,
+                error_message: "no donations found"
+            });
+        }
+        res.render('team', {
+            "donations":donations
+        });
+    });
+});
+//Routing End/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+//Auth Start////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------/////-login
+captifeye.post("/login", function(req, res){
+    var email = req.body.email.toLowerCase();
+    var password = req.body.password;
+    console.log('email: '+email);
+    console.log('password: '+password);
+    if(email != undefined && password != undefined){
+        db.get('SELECT users.email, users.password FROM users WHERE users.email="'+email+'";', function(err, user){
+            if(user == undefined){
+                res.send(404, {});
+            }else{
+                comparePassword(password, user.password, function (nul, match){
+                    if(!match){
+                        res.send(406, {});
+                    }else{
+                        res.cookie('email', ""+user.email, { signed: true });
+                        res.send(200, {url:'/'});
+                    }
+                });
+            }
+        });
+    }else{
+        res.send(404, {});
+    }
+});
+
+//---------------------------------------------/////-register
+captifeye.post("/register", function (req, res){
+    var name = req.body.name;
+    var email = req.body.email.toLowerCase();;
+    var password = req.body.password;
+    if(name != undefined && email != undefined && password != undefined){
+        cryptPassword(password, function (cryptErr, hash){
+            if(cryptErr){
+                res.send(500, {});
+            }else{
+                var id = uuid.v4();
+                db.run('INSERT INTO users VALUES ("'+id+'", "'+name+'","'+email+'","'+hash+'");', function(err){
+                    if(err){
+                        console.log(err);
+                        res.send(400, {});
+                    }else{
+                        res.cookie('email', ""+user.email, { signed: true });
+                        res.send(200, {});
+                    }
+                });
+            }
+        });
+    }else{
+        console.log("name: " + name);
+        console.log('email: ' + email);
+        console.log('password: ' + password);
+        res.send(400, {})
+    }
+});
+//---------------------------------------------/////-logout
+captifeye.get('/logout', function (req, res){
+  res.clearCookie('email');
+  res.redirect('/');
 });
 captifeye.get('*', function (req, res){
     res.render('error', {
@@ -82,41 +161,21 @@ captifeye.get('*', function (req, res){
         error_message:"Page not found"
     });
 });
+//Auth End///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+//Misc Start///////////////////////////////////////////////////////////////////////////
 //base cookie check and navigation building
-var getUser = function (req, res, unloggedRedirect, callback){
-    if (req.signedCookies.email == undefined) {   
-        res.redirect(unloggedRedirect);
+var getUser = function (req, callback){
+    if (req.signedCookies.email == undefined) {
+        callback(user);
     } else {
         db.serialize(function (){
             db.get("SELECT * FROM users WHERE email='"+req.signedCookies.email+"';", function (err, user){
-                if(err || user==undefined) res.render("front_error", { errorNumber:"ERROR!", comment:'Cooke Error!'});
-                else{
-                     db.all('SELECT locations.*, images.image_url FROM locations INNER JOIN images ON locations.location_id=images.location_id WHERE user_id="'+user.user_id+'";', function (err, locations){
-                        
-                        if(err){ res.render("front_error", { errorNumber:"ERROR!", comment:'Database Error'}); console.log(err)}
-                        else{
-                            var posts= '';
-                            var notificationAlertCount = "";
-                            if(posts.length != 0)
-                                notificationAlertCount = '<span class="badge">'+posts.length+'</span>';
-                            var notificationsHTML = "";
-                            for(var i = 0; i < posts.length; i++){
-                                notificationsHTML+='<li><a href="'+posts[i].url+'"><span class="photo"><img src="'+posts[i].image+'" alt=""/></span><span class="subject"><span class="from">'+posts[i].name+'</span><span class="time">'+posts[i].time+'</span></span><span class="message">@'+posts[i].locaion+'For '+posts[i].deal+'</span></a></li>'
-                            }
-                            console.log(locations);
-                            var data = {
-                                "user":user,
-                                "name":user.name, 
-                                "notificationCount":posts.length,
-                                "notificationAlertCount":notificationAlertCount,
-                                "notificationsHTML":notificationsHTML,
-                                "locations":locations
-                            };
-                            
-                            callback(data);
-                        }
-                    });
+                if(err){
+                    console.log(err);
+                    user = {};
                 }
+                callback(user);
             });
         });
     }
