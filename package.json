@@ -1,0 +1,29 @@
+{
+  "name": "cs638-PennyWar",
+  "version": "0.0.0",
+  "description": "For-Charity Penny War web service",
+  "main": "server.js",
+  "dependencies": {
+    "bcrypt": "~0.7.7",
+    "ejs": "~0.8.5",
+    "express": "~3.4.8",
+    "node-uuid": "~1.4.1",
+    "sqlite3": "~2.2.0",
+    "stripe": "~2.4.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/JoeDailey/cs638-PennyWar.git"
+  },
+  "author": "Joe Dailey, Victor Tavares, Agnaldo Luiz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JoeDailey/cs638-PennyWar/issues"
+  },
+  "homepage": "https://github.com/JoeDailey/cs638-PennyWar"
+}
