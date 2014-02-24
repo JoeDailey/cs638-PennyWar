@@ -1,3 +1,90 @@
 <% include part_head %>
-	<h1>HI!</h1>
+
+
+<!--List of Team,show by orders of money -->
+<div class="list-group">
+  <div>
+    <div style="float:left;"><h1 ><%= name %> - $</h1></div>
+    <div style="float:left;"><h1 ><%= total %></h1></div>
+    <div class="clearfix"></div>
+  </div>
+</div>
+<div id="teams">
+  <div id="add_team" class="team" data-toggle="modal" data-target="#myModal"><h2>Create Team</h2></div>
+  <div class="clearfix"></div>
+</div>
+
+<!-- Modal - Create Team -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="myModalLabel">Create Team</h4>
+      </div>
+      <div class="modal-body">
+        <form role="form" action="/new" method="GET">
+          <div class="form-group">
+            <label for="name">Team Name: </label>
+            <input class="form-control" name="team_name" id="name" placeholder="Enter team name">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <input type="submit" class="btn btn-primary" >
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div><!-- Close Modal -->
+
+<style type="text/css">
+  #teams{
+    min-height: 600px;
+  }
+  .team{
+    text-align: center;
+    height: 600px;
+    float:left;
+    background-color: #f9f9f9;
+    border:#e1e1e1 solid 1px;
+    cursor: pointer;
+  }
+  .full-bar{
+    height: 565px;
+    background-color: #3333dd;
+  }
+  .full-bar:hover{
+    background-color: #5555ff;
+  }
+  .amount-bar{
+    background-color: #f9f9f9;
+  }
+  .amount-bar:hover{
+    background-color: #f9f9f9;
+  }
+  #add_team{
+    padding-top: 250px;
+  }
+  #add_team:hover{
+    background-color: #fefefe;
+  }
+</style>
+<script type="text/javascript">
+  $(document).ready(function(){
+    var teams = <%- teams %>;
+    var w = $('#teams').width()/(teams.length+1);
+
+    for (var i = teams.length - 1; i >= 0; i--) {    
+      var h = (1 - teams[i].total / <%= total %>) * 565;
+      $('#teams').prepend($('<div class="team"><h2 style="height:25px;margin-top:5px;margin-bottom:5px;">'+teams[i].team_name+'</h2><div team_name="'+teams[i].team_name+'"  class="full-bar"><div class="amount-bar" style="height:'+h+'px;"></div></div></div>'));
+    };
+    $('.team').css('width',w+'px');
+    $('.full-bar').click(function(){
+      document.location.href = "/t/"+$(this).attr('team_name');
+    })
+  });
+</script>
+
+
 <% include part_foot %>
